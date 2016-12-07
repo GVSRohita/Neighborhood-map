@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            html,
+            body {
+                font-family: Arial, sans-serif;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .container {
+                height: 100%;
+                position: relative;
+            }
+
+            input {
+                font-size: 12px;
+            }
+
+            h1 {
+                color: #525454;
+                font-size: 22px;
+                margin: 0 0 10px 0;
+                text-align: center;
+            }
+
+            #hide-listings,
+            #show-listings {
+                width: 48%;
+            }
+
+            hr {
+                background: #D0D7D9;
+                height: 1px;
+                margin: 20px 0 20px 0;
+                border: none;
+            }
+
+            #map {
+                bottom:0px;
+                height: 100%;
+                left: 362px;
+                position: absolute;
+                right: 0px;
+            }
+
+            .options-box {
+                background: #fff;
+                border: 1px solid #999;
+                border-radius: 3px;
+                height: 100%;
+                line-height: 35px;
+                padding: 10px 10px 30px 10px;
+                text-align: left;
+                width: 340px;
+            }
+
+            #pano {
+                width: 300px;
+                height: 300px;
+            }
+
+            .text {
+                font-size: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+            var map;
+            var markers = [];
+            function initMap() {
+                // Constructor creates a new map - only center and zoom are required.
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: {lat: 17.6868, lng: 83.2185},
+                    zoom: 13
+                });
+                var locations = [
+                    {title: 'kailash giri', location: {lat: 17.7492, lng: 83.3422}},
+                    {title: 'simhachalam temple', location: {lat: 17.7665, lng: 83.2506}},
+                    {title: 'Indira Gandhi zoological park', location: {lat: 17.7686, lng: 83.3445}},
+                    {title: 'visakha museum', location: {lat: 17.7206, lng: 83.3342}},
+                    {title: 'sivaji park', location: {lat: 17.7374, lng: 83.3312}},
+                    {title: 'rushikonda beach', location: {lat: 17.7820, lng: 83.3853}},
+                    {title: 'ramakrishna beach', location: {lat: 17.7115, lng: 83.3195}},
+                    {title: 'hotel daspalla', location: {lat: 17.7106556, lng: 83.3004312}},
+                    {title: 'Vizag steel', location: {lat: 17.6333889, lng: 83.1706543}}
+                ];
+
+                var largeInfowindow = new google.maps.InfoWindow();
+                var bounds = new google.maps.LatLngBounds();
+
+                for (i = 0; i < locations.length; i++) {
+                    var position = locations[i].location;
+                    var title = locations[i].title;
+
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: position,
+                        title: title,
+                        animation: google.maps.Animation.DROP,
+                        id: i
+                    });
+                    markers.push(marker);
+                    marker.addListener('click', function () {
+                        populateInfoWindow(this, largeInfowindow);
+                    });
+                    bounds.extend(markers[i].position);
+                }
+                map.fitBounds(bounds);
+            }
+
+            function populateInfoWindow(marker, infowindow) {
+                // Check to make sure the infowindow is not already opened on this marker.
+                if (infowindow.marker !== marker) {
+                    // Clear the infowindow content to give the streetview time to load.
+                    infowindow.setContent('');
+                    infowindow.marker = marker;
+                    // Make sure the marker property is cleared if the infowindow is closed.
+                    infowindow.addListener('closeclick', function () {
+                        infowindow.marker = null;
+                    });
+                    var streetViewService = new google.maps.StreetViewService();
+                    var radius = 50;
+                    // In case the status is OK, which means the pano was found, compute the
+                    // position of the streetview image, then calculate the heading, then get a
+                    // panorama from that and set the options
+                    function getStreetView(data, status) {
+                        if (status === google.maps.StreetViewStatus.OK) {
+                            var nearStreetViewLocation = data.location.latLng;
+                            var heading = google.maps.geometry.spherical.computeHeading(
+                                    nearStreetViewLocation, marker.position);
+                            infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
+                            var panoramaOptions = {
+                                position: nearStreetViewLocation,
+                                pov: {
+                                    heading: heading,
+                                    pitch: 30
+                                }
+                            };
+                            var panorama = new google.maps.StreetViewPanorama(
+                                    document.getElementById('pano'), panoramaOptions);
+                        } else {
+                            infowindow.setContent('<div>' + marker.title + '</div>' +
+                                    '<div>No Street View Found</div>');
+                        }
+                    }
+                    // Use streetview service to get the closest streetview image within
+                    // 50 meters of the markers position
+                    streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+                    // Open the infowindow on the correct marker.
+                    infowindow.open(map, marker);
+                }
+            }
+
+        </script>
+        <script async defer
+                src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8UsJDFjlef35eUrO7io5FsBxIorvXm5M&v=3&callback=initMap">
+        </script>
+    </body>
+</html>
